@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  primary:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: examplepass
+      POSTGRES_DB: exampledb
+    volumes:
+      - ./primary/data:/var/lib/postgresql/data
+      - ./primary/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 2s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+  standby:
+    image: postgres:latest
+    depends_on:
+      primary:
+        condition: service_healthy
+    environment:
+      POSTGRES_PASSWORD: this_gets_discarded
+    volumes:
+      - ./standby/data:/var/lib/postgresql/data
+      - ./standby/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    ports:
+      - "5433:5432"
